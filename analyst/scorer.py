@@ -3,9 +3,16 @@ from openai import OpenAI
 from dotenv import load_dotenv
 from analyst.prompts import SYSTEM_PROMPT, build_user_prompt
 from analyst.rag_retriever import retrieve_context
+from analyst.feedback_parser import parse_feedback
 
 load_dotenv()
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+from analyst.utils import ensure_api_key
+
+# make sure we honour either environment variable
+ensure_api_key()
+
+client = OpenAI(api_key=os.getenv("GEMINI_API_KEY"))
 
 def analyse_essay(essay: str, level: str, discipline: str,
                   rubric: str, use_rag: bool, max_refs: int = 7) -> dict:
@@ -16,16 +23,26 @@ def analyse_essay(essay: str, level: str, discipline: str,
 
     user_prompt = build_user_prompt(essay, level, discipline, rubric, rag_context)
 
-    response = client.chat.completions.create(
-        model="gpt-4o",
-        response_format={"type": "json_object"},
-        messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user",   "content": user_prompt},
-        ],
-        temperature=0.2,
-    )
+    try:
+        response = client.chat.completions.create(
+            model="grmini",
+            response_format={"type": "json_object"},
+            messages=[
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user",   "content": user_prompt},
+            ],
+            temperature=0.2,
+        )
+    except Exception as exc:
+        # could be network error, API quota, etc.
+        raise RuntimeError("failed to contact LLM service") from exc
 
-    result = json.loads(response.choices[0].message.content)
+    raw = response.choices[0].message.content
+    try:
+        result = parse_feedback(raw)
+    except ValueError as exc:
+        # wrap in runtime error so callers can handle generically
+        raise RuntimeError("unexpected response format from LLM") from exc
+
     result["rag_sources"] = sources
     return result
