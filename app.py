@@ -109,11 +109,27 @@ with left:
         "Or upload a plain-text file (.txt / .md)",
         type=["txt", "md"],
     )
-    if uploaded and not essay_text:
-        essay_text = uploaded.read().decode("utf-8")
+    max_bytes = 1_000_000
+    if uploaded:
+        if uploaded.size > max_bytes:
+            st.warning(f"Uploaded file exceeds {max_bytes//1000}KB limit.")
+        elif not essay_text:
+            try:
+                essay_text = uploaded.read().decode("utf-8")
+            except UnicodeDecodeError:
+                st.warning("Uploaded file is not valid UTF-8 text.")
+                essay_text = ""
 
-    word_count = len(essay_text.split()) if essay_text else 0
+    from analyst.input_validation import validate_essay, count_words
+
+    word_count = count_words(essay_text)
+    msg = ""
+    if essay_text:
+        ok, msg = validate_essay(essay_text)
     st.caption(f"Word count: **{word_count}** · Minimum required: 150 words")
+
+    if msg:
+        st.warning(msg)
 
     st.divider()
     st.subheader("2  ·  Analysis Settings")
@@ -126,8 +142,8 @@ with left:
             "References are drawn from the indexed academic corpus in `/data/corpus/`."
         )
 
-    ready = word_count >= 150
-    if not ready:
+    ready = word_count >= 150 and not msg
+    if not ready and not msg:
         st.warning("Please enter at least 150 words to enable analysis.")
 
     run = st.button(
