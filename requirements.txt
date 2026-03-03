@@ -1,6 +1,11 @@
-streamlit
-google-generativeai
-sentence-transformers
-faiss-cpu
-numpy
-python-dotenv
+streamlit>=1.32.0
+openai>=1.14.0
+langchain>=0.1.12
+langchain-openai>=0.1.1
+langchain-community>=0.0.29
+faiss-cpu>=1.7.4
+tiktoken>=0.6.0
+pypdf>=4.1.0
+python-dotenv>=1.0.1
+plotly>=5.20.0
+pandas>=2.2.1
