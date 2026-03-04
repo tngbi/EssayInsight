@@ -12,7 +12,7 @@ from analyst.utils import ensure_api_key
 # make sure we honour either environment variable
 ensure_api_key()
 
-client = OpenAI(api_key=os.getenv("GEMINI_API_KEY"))
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 def analyse_essay(essay: str, level: str, discipline: str,
                   rubric: str, use_rag: bool, max_refs: int = 7) -> dict:
@@ -24,9 +24,12 @@ def analyse_essay(essay: str, level: str, discipline: str,
     user_prompt = build_user_prompt(essay, level, discipline, rubric, rag_context)
 
     try:
+        # Use the chat completions endpoint without the `response_format`
+        # kwarg for broad compatibility with the installed OpenAI client.
+        # The LLM is instructed (see prompts) to return a JSON string which
+        # we validate with `parse_feedback` below.
         response = client.chat.completions.create(
             model="grmini",
-            response_format={"type": "json_object"},
             messages=[
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user",   "content": user_prompt},
