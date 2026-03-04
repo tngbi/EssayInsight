@@ -29,7 +29,7 @@ def analyse_essay(essay: str, level: str, discipline: str,
         # The LLM is instructed (see prompts) to return a JSON string which
         # we validate with `parse_feedback` below.
         response = client.chat.completions.create(
-            model="grmini",
+            model="gpt-4o-mini",
             messages=[
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user",   "content": user_prompt},
